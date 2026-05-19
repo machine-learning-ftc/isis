@@ -19,11 +19,11 @@ class FakeLogger implements Logger {
     return this;
   }
 
-  public info(_message: string, _context?: LogContext): void {}
+  public info(_message: string, _context?: LogContext): void { }
 
-  public warn(_message: string, _context?: LogContext): void {}
+  public warn(_message: string, _context?: LogContext): void { }
 
-  public error(_message: string, _context?: LogContext): void {}
+  public error(_message: string, _context?: LogContext): void { }
 }
 
 const clock: Clock = {
@@ -110,11 +110,6 @@ describe("POST /v1/check", () => {
         source: string;
         url: string;
       };
-      display: {
-        verdictLabel: string;
-        sourceLabel: string;
-        publisher: string;
-      };
     };
     expect(body.id).toBe(SAVED_ID);
     expect(body.status).toBe("found");
@@ -124,9 +119,6 @@ describe("POST /v1/check", () => {
       source: "fact_api",
       url: "https://example.com/fact",
     });
-    expect(body.display.verdictLabel).toBe("Verdadeiro");
-    expect(body.display.sourceLabel).toBe("Fact-check (Google)");
-    expect(body.display.publisher).toBe("Aos Fatos");
   });
 
   it("returns success via the fallback provider", async () => {
@@ -156,11 +148,9 @@ describe("POST /v1/check", () => {
     const body = (await response.json()) as {
       status: string;
       data: { source: string };
-      display: { statusLabel: string };
     };
     expect(body.status).toBe("predicted");
     expect(body.data.source).toBe("ml");
-    expect(body.display.statusLabel).toBe("Estimado por ML");
   });
 
   it("returns 503 when both providers fail", async () => {

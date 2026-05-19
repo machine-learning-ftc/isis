@@ -46,5 +46,4 @@ export const checkResponseSchema = t.Object({
     source: t.Union([t.Literal("fact_api"), t.Literal("ml")]),
     url: t.Nullable(t.String()),
   }),
-  display: factCheckDisplaySchema,
 });

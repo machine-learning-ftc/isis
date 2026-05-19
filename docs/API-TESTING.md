@@ -6,7 +6,7 @@ Guia para testes manuais e automatizados de todas as rotas HTTP expostas pelo ba
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `POST` | `/v1/check` | Verifica uma afirmação (Google Fact Check → fallback ML) |
+| `POST` | `/v1/check` | Verifica uma afirmação para consumo do front-end (Google Fact Check → fallback ML) |
 | `GET` | `/v1/checks/:id` | Consulta um resultado persistido por UUID |
 | `GET` | `/v1/health` | Liveness/readiness (DB + uptime) |
 | `GET` | `/metrics` | Métricas Prometheus |
@@ -83,34 +83,15 @@ Content-Type: application/json
     "confidence": 0.0,
     "source": "fact_api | ml",
     "url": "string | null"
-  },
-  "display": {
-    "id": "uuid",
-    "query": "string",
-    "claim": "string",
-    "verdict": "true | false | uncertain",
-    "verdictLabel": "Verdadeiro | Falso | Incerto",
-    "confidence": 0.0,
-    "confidencePercent": 0.0,
-    "source": "fact_api | ml",
-    "sourceLabel": "Fact-check (Google) | Modelo de ML",
-    "status": "found | predicted",
-    "statusLabel": "Verificado na API | Estimado por ML",
-    "publisher": "string | null",
-    "ratingLabel": "string | null",
-    "url": "string | null",
-    "checkedAt": "ISO-8601",
-    "checkedAtBr": "DD/MM/YYYY HH:mm"
   }
 }
 ```
 
 | Campo | Significado |
 |-------|-------------|
-| `status` / `display.status` | `found` = Google retornou claim; `predicted` = fallback ML |
+| `status` | `found` = Google retornou claim; `predicted` = fallback ML |
 | `id` | UUID salvo no banco; `null` se persistência falhou (resposta ainda 200) |
-| `data` | Contrato enxuto para integrações |
-| `display` | Projeção com labels em PT-BR para UI |
+| `data` | Contrato enxuto para integrações do front-end |
 
 ### Cenários de teste
 
@@ -131,8 +112,7 @@ curl -sS -X POST http://localhost:3000/v1/check \
 - Header `x-request-id: test-check-primary-001`
 - `status` = `"found"`
 - `data.source` = `"fact_api"`
-- `display.sourceLabel` = `"Fact-check (Google)"`
-- `display.statusLabel` = `"Verificado na API"`
+- A UI monta os labels a partir de `status`, `source` e `verdict`
 - `id` = UUID válido (se DB up)
 - `data.verdict` ∈ `true`, `false`, `uncertain`
 - `data.confidence` entre `0` e `1`
@@ -152,7 +132,6 @@ curl -sS -X POST http://localhost:3000/v1/check \
 - HTTP `200`
 - `status` = `"predicted"`
 - `data.source` = `"ml"`
-- `display.statusLabel` = `"Estimado por ML"`
 - Métrica `check_fallback_total` incrementa (ver `/metrics`)
 
 #### TC-CHECK-03 — Provedores indisponíveis
@@ -221,7 +200,7 @@ python3 -c "print('{\"query\":\"' + 'a'*2049 + '\"}')" | \
 
 1. Executar TC-CHECK-01 ou TC-CHECK-02 e copiar `id` da resposta.
 2. Chamar `GET /v1/checks/{id}` (seção 2).
-3. Comparar campos de `display` com a resposta do POST.
+3. Comparar os campos de `id`, `status` e `data` com a resposta do POST.
 
 ---
 
@@ -241,7 +220,7 @@ GET /v1/checks/{id}
 
 ### Response `200`
 
-Objeto `FactCheckDisplay` (mesma forma de `display` no POST, sem wrapper `data`):
+Objeto `FactCheckDisplay` retornado pela leitura persistida, sem wrapper `data`:
 
 ```json
 {
@@ -275,7 +254,7 @@ ID="11111111-1111-1111-1111-111111111111"  # substituir pelo id real
 curl -sS http://localhost:3000/v1/checks/$ID | jq .
 ```
 
-**Esperado:** HTTP `200`, campos alinhados ao `display` do POST.
+**Esperado:** HTTP `200`, campos alinhados ao registro persistido retornado pelo `GET`.
 
 #### TC-CHECKS-02 — Não encontrado
 
